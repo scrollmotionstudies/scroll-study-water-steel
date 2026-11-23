@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion study: water and steel</title>
+<style>
+  :root{
+    --ink-0:#07090b; --ink-1:#0c0f12; --ink-2:#12161a; --ink-3:#181d22; --ink-4:#20262c;
+    --steel-1:#e6eaee; --steel-2:#a9b2bb; --steel-3:#6c7680; --steel-4:#3a424a;
+    --line:rgba(170,185,200,.10);
+    --accent:#7fc8dc;
+    --vh:100vh;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--ink-0);color:var(--steel-1);font-family:Inter,"IBM Plex Sans",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{height:calc(var(--vh) * 4)}           /* four chapters, one screen each */
+  #stage{position:fixed;inset:0;overflow:hidden}
+  #water{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  /* chapter text scrolls like normal content */
+  #flow{position:absolute;left:0;top:0;width:100%;will-change:transform}
+  .chapter{height:var(--vh);display:flex;align-items:center;padding-left:9vw}
+  .copy{width:30vw;max-width:520px;will-change:transform,opacity}
+  .num{font:500 15px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:.14em;color:var(--steel-3);margin-bottom:22px}
+  .num b{color:var(--steel-2);font-weight:500}
+  h2{font-weight:600;font-size:clamp(36px,3.9vw,76px);line-height:1.04;letter-spacing:-.025em;color:var(--steel-1)}
+  p.sub{margin-top:20px;font-size:clamp(16px,1.3vw,25px);line-height:1.5;color:var(--steel-2);max-width:26ch}
+
+  /* progress rail */
+  #rail{position:absolute;left:4.2vw;top:50%;transform:translateY(-50%);height:180px;width:1px;background:var(--steel-4)}
+  #rail i{position:absolute;left:-2px;width:5px;height:5px;background:var(--steel-4)}
+  #rail #knob{position:absolute;left:-1px;width:3px;height:45px;background:var(--steel-2)}
+
+  /* steel hero: pinned, never moves */
+  #hero{position:absolute;right:8vw;top:50%;width:min(46vw,860px);aspect-ratio:16/10.4;transform:translateY(-50%);
+        background:linear-gradient(180deg,var(--ink-3),var(--ink-2));border:1px solid rgba(190,205,220,.12);border-radius:14px;
+        box-shadow:0 1px 0 rgba(255,255,255,.04) inset,0 40px 80px -30px rgba(0,0,0,.8);overflow:hidden;display:grid;grid-template-rows:44px 1fr}
+  .bar{display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid var(--line)}
+  .bar span{width:10px;height:10px;border-radius:50%;background:var(--steel-4)}
+  .bar em{margin-left:auto;width:120px;height:8px;border-radius:4px;background:var(--ink-4)}
+  .body{display:grid;grid-template-columns:24% 1fr}
+  .side{border-right:1px solid var(--line);padding:22px 18px;display:flex;flex-direction:column;gap:14px}
+  .side div{height:8px;border-radius:4px;background:var(--ink-4)}
+  .side div.on{background:var(--steel-4)}
+  .main{padding:24px 26px;display:flex;flex-direction:column;gap:18px}
+  .head{display:flex;align-items:flex-end;justify-content:space-between}
+  .head .t{display:flex;flex-direction:column;gap:10px}
+  .head .t div{height:10px;border-radius:5px;background:var(--steel-4);width:180px}
+  .head .t div+div{height:7px;width:110px;background:var(--ink-4)}
+  .metric{font:500 44px/1 "IBM Plex Mono",ui-monospace,monospace;letter-spacing:-.02em;color:var(--steel-1);font-variant-numeric:tabular-nums}
+  .metric small{font-size:13px;color:var(--steel-3);margin-left:6px;letter-spacing:.1em}
+  .rows{position:relative;display:flex;flex-direction:column;border-top:1px solid var(--line)}
+  .row{position:relative;display:grid;grid-template-columns:18px 1fr 70px 46px;align-items:center;gap:16px;height:52px;padding:0 12px;border-bottom:1px solid var(--line)}
+  .row .c{width:12px;height:12px;border-radius:3px;border:1px solid var(--steel-4)}
+  .row .a{height:8px;border-radius:4px;background:var(--steel-4)}
+  .row .b{height:8px;border-radius:4px;background:var(--ink-4)}
+  .row .d{height:18px;border-radius:9px;background:var(--ink-4)}
+  #sel{position:absolute;left:0;right:0;height:52px;border-left:2px solid var(--steel-4);pointer-events:none}
+  .row.active .c{border-color:var(--accent);background:var(--accent)}
+  .row.active .a{background:var(--steel-2)}
+
+  @media (prefers-reduced-motion: reduce){ #water{opacity:.6} }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="water"></canvas>
+
+  <div id="flow">
+    <section class="chapter"><div class="copy"><div class="num"><b>01</b> / 04</div><h2>Steel holds.</h2><p class="sub">The product stays put.</p></div></section>
+    <section class="chapter"><div class="copy"><div class="num"><b>02</b> / 04</div><h2>Water moves.</h2><p class="sub">The context changes around it.</p></div></section>
+    <section class="chapter"><div class="copy"><div class="num"><b>03</b> / 04</div><h2>One accent, last.</h2><p class="sub">One color, on one thing.</p></div></section>
+    <section class="chapter"><div class="copy"><div class="num"><b>04</b> / 04</div><h2>Nothing waits.</h2><p class="sub">A fast flick lands finished.</p></div></section>
+  </div>
+
+  <div id="rail"><i style="top:0"></i><i style="top:33.3%"></i><i style="top:66.6%"></i><i style="top:calc(100% - 5px)"></i><div id="knob"></div></div>
+
+  <div id="hero" aria-hidden="true">
+    <div class="bar"><span></span><span></span><span></span><em></em></div>
+    <div class="body">
+      <div class="side"><div style="width:70%"></div><div class="on" style="width:85%"></div><div style="width:60%"></div><div style="width:75%"></div><div style="width:50%"></div></div>
+      <div class="main">
+        <div class="head"><div class="t"><div></div><div></div></div><div class="metric" id="metric">18<small>/ 42</small></div></div>
+        <div class="rows" id="rows">
+          <div id="sel"></div>
+          <div class="row"><i class="c"></i><i class="a" style="width:62%"></i><i class="b"></i><i class="d"></i></div>
+          <div class="row"><i class="c"></i><i class="a" style="width:48%"></i><i class="b"></i><i class="d"></i></div>
+          <div class="row"><i class="c"></i><i class="a" style="width:70%"></i><i class="b"></i><i class="d"></i></div>
+          <div class="row"><i class="c"></i><i class="a" style="width:40%"></i><i class="b"></i><i class="d"></i></div>
+          <div class="row"><i class="c"></i><i class="a" style="width:56%"></i><i class="b"></i><i class="d"></i></div>
+          <div class="row"><i class="c"></i><i class="a" style="width:66%"></i><i class="b"></i><i class="d"></i></div>
+          <div class="row"><i class="c"></i><i class="a" style="width:44%"></i><i class="b"></i><i class="d"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+  Water & steel motion study.
+  - Steel: the product card is pinned and never moves. Its inner state changes with short, rigid,
+    no-overshoot steps (Steel easing).
+  - Water: the background lines and tints drift with time and change shape per chapter (Water easing).
+  - Thumb rule: if scroll speed is above FAST (screen heights per second), every reveal snaps to its
+    finished, readable state. Motion is decoration; it never gates reading.
+  Everything is a pure function of (scrollY, time, dt), so the page can also be rendered frame by frame
+  for recording: window.__render(scrollY, timeSeconds, dtSeconds).
+*/
+const FAST = 1.6;            // screen heights per second
+const REVEAL = 0.22;         // a reveal completes within 0.22 screen heights of scroll
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const steel=t=>{t=clamp(t);return 1-Math.pow(1-t,3)};            // rigid, short, no overshoot
+const water=t=>{t=clamp(t);return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2}; // fluid, symmetric drift
+
+const cv=document.getElementById('water'), ctx=cv.getContext('2d');
+const flow=document.getElementById('flow');
+const copies=[...document.querySelectorAll('.copy')];
+const rows=[...document.querySelectorAll('.row')];
+const sel=document.getElementById('sel');
+const metric=document.getElementById('metric');
+const knob=document.getElementById('knob');
+let W=0,H=0,DPR=1;
+function size(){DPR=Math.min(window.devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0)}
+size(); addEventListener('resize',size);
+
+// per-chapter water character: amplitude, frequency, hue tint, line pull toward the card
+const CH=[
+  {amp:10, freq:1.2, tint:[24,40,56],  pull:0.0, wash:[0.15,0.85]},
+  {amp:46, freq:1.9, tint:[18,46,62],  pull:0.2, wash:[0.70,0.20]},
+  {amp:28, freq:1.4, tint:[22,36,52],  pull:0.8, wash:[0.55,0.60]},
+  {amp:6,  freq:1.0, tint:[16,28,40],  pull:0.3, wash:[0.30,0.40]},
+];
+const latched=copies.map(()=>0);
+
+function render(y,t,dt){
+  const p=y/H;                                  // position in screen heights
+  const v=dt>0?Math.abs((y-(render.lastY??y))/H)/dt:0; render.lastY=y;
+  const fast=v>FAST;
+
+  // chapter blend for the water
+  const i0=clamp(Math.floor(p),0,3), i1=clamp(i0+1,0,3), f=water(p-i0);
+  const c0=CH[i0], c1=CH[i1];
+  const amp=lerp(c0.amp,c1.amp,f), freq=lerp(c0.freq,c1.freq,f), pull=lerp(c0.pull,c1.pull,f);
+  const tint=c0.tint.map((a,k)=>lerp(a,c1.tint[k],f));
+  const wash=[lerp(c0.wash[0],c1.wash[0],f),lerp(c0.wash[1],c1.wash[1],f)];
+
+  // --- water layer
+  ctx.fillStyle='#07090b'; ctx.fillRect(0,0,W,H);
+  const g=ctx.createRadialGradient(W*wash[0],H*wash[1],0,W*wash[0],H*wash[1],Math.max(W,H)*0.9);
+  g.addColorStop(0,`rgba(${tint[0]|0},${tint[1]|0},${tint[2]|0},0.8)`); g.addColorStop(1,'rgba(7,9,11,0)');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  const cardY=H*0.5, N=34;
+  ctx.lineWidth=1.25;
+  for(let n=0;n<N;n++){
+    const base=(n+0.5)/N*H*1.2-H*0.1;
+    const d=(base-cardY)/H;                       // lines bend gently toward the pinned card
+    const a=0.07+0.11*Math.exp(-Math.pow(d*3,2));
+    ctx.strokeStyle=`rgba(${150+tint[0]},${185+tint[1]/2},${205+tint[2]/3},${a})`;
+    ctx.beginPath();
+    for(let x=0;x<=W;x+=12){
+      const u=x/W;
+      const yy=base
+        + amp*Math.sin(u*Math.PI*2*freq + t*0.55 + n*0.33 + p*1.4)
+        + amp*0.45*Math.sin(u*Math.PI*5.1 - t*0.8 + n*0.21)
+        - pull*d*H*0.18*Math.exp(-Math.pow((u-0.68)*2.2,2))
+        - p*H*0.06;                               // the field drifts a little with the scroll, the card does not
+      x?ctx.lineTo(x,yy):ctx.moveTo(x,yy);
+    }
+    ctx.stroke();
+  }
+
+  // --- scrolling copy (moves exactly with the scroll, like normal content)
+  flow.style.transform=`translate3d(0,${-y}px,0)`;
+  copies.forEach((el,k)=>{
+    // reveal progress: finishes when the chapter is still REVEAL screens from settled
+    let r=clamp((p-(k-1))/(1-REVEAL));            // 0 when a screen away, 1 before it arrives
+    r=steel(r);
+    if(fast && Math.abs(p-k)<1.2) latched[k]=1;   // thumb rule: a fast flick snaps it finished
+    if(Math.abs(p-k)>1.5) latched[k]=0;
+    r=Math.max(r,latched[k]);
+    el.style.opacity=lerp(0.0,1,r).toFixed(3);
+    el.style.transform=`translate3d(0,${lerp(28,0,r).toFixed(2)}px,0)`;
+  });
+
+  // --- steel hero internals: rigid steps, never moves the card itself
+  const idx=[0,1,4,4], nums=[18,24,31,42];
+  const ip=clamp(Math.round(p),0,3);
+  const local=clamp((p-(ip-0.5))/0.25);          // short band around the chapter edge
+  const from=idx[clamp(ip-1,0,3)], to=idx[ip];
+  const sp=fast?1:steel(local);
+  const rowH=52;
+  sel.style.transform=`translate3d(0,${lerp(from,to,ip===0?1:sp)*rowH}px,0)`;
+  // accent arrives last: only from chapter 03, and only after the row has landed
+  const acc = ip>=2 ? (fast?1:clamp((sp-0.6)/0.4)) : 0;
+  sel.style.borderLeftColor=`rgba(127,200,220,${(0.25+0.75*acc).toFixed(3)})`;
+  sel.style.background=`rgba(${lerp(170,127,acc)|0},${lerp(185,200,acc)|0},${lerp(200,220,acc)|0},${lerp(0.05,0.07,acc).toFixed(3)})`;
+  rows.forEach((r,k)=>r.classList.toggle('active',ip>=2 && k===to && acc>0.5));
+  metric.firstChild.nodeValue=String(nums[ip]);
+  metric.style.color= acc>0.5 ? 'var(--accent)' : 'var(--steel-1)';
+  knob.style.transform=`translate3d(0,${clamp(p/3)*(180-45)}px,0)`;
+}
+window.__render=render;
+
+// live mode: drive from real scroll and real time
+if(!location.search.includes('record')){
+  let last=performance.now();
+  const loop=now=>{const dt=(now-last)/1000; last=now; render(scrollY, now/1000, dt); requestAnimationFrame(loop)};
+  requestAnimationFrame(loop);
+}else{
+  document.body.style.height='100vh'; document.body.style.overflow='hidden';
+  render(0,0,0);
+}
+</script>
+</body>
+</html>
